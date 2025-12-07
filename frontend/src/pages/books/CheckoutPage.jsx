@@ -9,7 +9,7 @@ import { useCreateOrderMutation } from '../../redux/features/orders/ordersApi';
 
 const CheckoutPage = () => {
     const cartItems = useSelector(state => state.cart.cartItems);
-    const totalPrice = cartItems.reduce((acc, item) => acc + item.newPrice, 0).toFixed(2);
+    const totalPrice = cartItems.reduce((acc, item) => acc +  Number(item.newPrice) * (item.qty || 1), 0).toFixed(2);
     const {  currentUser} = useAuth()
     const {
         register,
@@ -28,11 +28,11 @@ const CheckoutPage = () => {
             name: data.name,
             email: currentUser?.email,
             address: {
+                street: data.address,
                 city: data.city,
                 country: data.country,
                 state: data.state,
                 zipcode: data.zipcode
-        
             },
             phone: data.phone,
             productIds: cartItems.map(item => item?._id),

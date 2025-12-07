@@ -8,7 +8,8 @@ const CartPage = () => {
     const cartItems = useSelector(state => state.cart.cartItems);
     const dispatch =  useDispatch()
 
-    const totalPrice =  cartItems.reduce((acc, item) => acc + item.newPrice, 0).toFixed(2);
+    // If newPrice is String => Easy to string addition
+    const totalPrice =  cartItems.reduce((acc, item) => acc + Number(item.newPrice) * (item.qty || 1), 0).toFixed(2); // cartSlice should have qty for each items, not only saving book
 
     const handleRemoveFromCart = (product) => {
         dispatch(removeFromCart(product))
