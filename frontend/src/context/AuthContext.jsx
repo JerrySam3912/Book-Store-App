@@ -1,73 +1,136 @@
-import {  createContext, useContext, useEffect, useState } from "react";
-import { auth } from "../firebase/firebase.config";
-import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
+// src/context/AuthContext.jsx
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
+import getBaseUrl from "../utils/baseURL"; // 🔥 đi lên 1 cấp rồi vào utils
 
-const AuthContext =  createContext();
+const AuthContext = createContext();
 
-export const useAuth = () => {
-    return useContext(AuthContext)
-}
+// Hook để sử dụng auth context
+export const useAuth = () => useContext(AuthContext);
 
-const googleProvider = new GoogleAuthProvider();
+// Helper function để get initial user from localStorage
+const getInitialUser = () => {
+  try {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      return JSON.parse(savedUser);
+    }
+  } catch (err) {
+    console.error("Failed to parse saved user:", err);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+  return null;
+};
 
-// authProvider
-export const AuthProvide = ({children}) => {
-    const [currentUser, setCurrentUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+// Giữ đúng tên AuthProvide để App.jsx không phải sửa
+export const AuthProvide = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState(getInitialUser);
+  const [loading, setLoading] = useState(true);
 
-    // register a user
-    const registerUser = async (email,password) => {
+  // Lấy token + user từ localStorage khi reload
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
 
-        return await createUserWithEmailAndPassword(auth, email, password);
+    if (!savedToken || !savedUser) {
+      // Use setTimeout to avoid setState in effect warning
+      setTimeout(() => setLoading(false), 0);
+      return;
     }
 
-    // login the user
-    const loginUser = async (email, password) => {
-    
-        return await signInWithEmailAndPassword(auth, email, password)
-    }
+    // Use setTimeout to avoid setState in effect warning
+    const timer = setTimeout(() => {
+      try {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+      } catch (err) {
+        console.error("Failed to parse saved user:", err);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+      setLoading(false);
+    }, 0);
 
-    // sing up with google
-    const signInWithGoogle = async () => {
-     
-        return await signInWithPopup(auth, googleProvider)
-    }
+    return () => clearTimeout(timer);
+  }, []);
 
-    // logout the user
-    const logout = () => {
-        return signOut(auth)
-    }
+  // Register user thường – Register.jsx gọi registerUser(email, password)
+  const registerUser = async (email, password) => {
+    const name = email.split("@")[0];
 
-    // manage user
-    useEffect(() => {
-        const unsubscribe =  onAuthStateChanged(auth, (user) => {
-            setCurrentUser(user);
-            setLoading(false);
+    const res = await axios.post(`${getBaseUrl()}/api/auth/register`, {
+      name,
+      email,
+      password,
+    });
 
-            if(user) {
-               
-                const {email, displayName, photoURL} = user;
-                const userData = {
-                    email, username: displayName, photo: photoURL
-                } 
-            }
-        })
+    const { token, user } = res.data;
 
-        return () => unsubscribe();
-    }, [])
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setCurrentUser(user);
 
+    return user;
+  };
 
-    const value = {
-        currentUser,
-        loading,
-        registerUser,
-        loginUser,
-        signInWithGoogle,
-        logout
-    }
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    )
-}
+  // Login user thường – Login.jsx gọi loginUser(email, password)
+  const loginUser = async (email, password) => {
+    const res = await axios.post(`${getBaseUrl()}/api/auth/login`, {
+      email,
+      password,
+    });
+
+    const { token, user } = res.data;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setCurrentUser(user);
+
+    return user;
+  };
+
+  // Login admin – AdminLogin.jsx gọi loginAdmin(email, password)
+  const loginAdmin = async (email, password) => {
+    const res = await axios.post(`${getBaseUrl()}/api/auth/admin-login`, {
+      email,
+      password,
+    });
+
+    const { token, user } = res.data;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setCurrentUser(user);
+
+    return user;
+  };
+
+  // Tạm thời chưa dùng Google login (đỡ đụng Firebase)
+  const signInWithGoogle = async () => {
+    throw new Error("Google login is not supported in this version");
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+  };
+
+  const value = {
+    currentUser,
+    loading,
+    registerUser,
+    loginUser,
+    loginAdmin,
+    signInWithGoogle,
+    logout,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
