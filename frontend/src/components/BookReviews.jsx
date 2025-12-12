@@ -270,4 +270,3 @@ const BookReviews = ({ bookId }) => {
 
 export default BookReviews;
 
-
