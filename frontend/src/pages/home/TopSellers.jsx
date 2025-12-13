@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom';
 import BookCard from '../books/BookCard';
 
 // Import Swiper React components
@@ -11,32 +12,53 @@ import { Pagination, Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
-import { useFetchAllBooksQuery } from '../../redux/features/books/booksApi';
-
-const categories = ["Choose a genre", "Business", "Fiction", "Horror", "Adventure"]
+import { useFetchAllBooksQuery, useFetchCategoriesQuery } from '../../redux/features/books/booksApi';
 
 const TopSellers = () => {
-    
-    const [selectedCategory, setSelectedCategory] = useState("Choose a genre");
+    const [selectedCategory, setSelectedCategory] = useState("all");
 
-   const {data: books = []} = useFetchAllBooksQuery();
-  
-    const filteredBooks = selectedCategory === "Choose a genre" ? books : books.filter(book => book.category === selectedCategory.toLowerCase())
+    // Fetch books với category filter nếu có
+    const { data } = useFetchAllBooksQuery({
+        category: selectedCategory === "all" ? "" : selectedCategory,
+        limit: 20,
+    });
+    
+    // Fetch categories từ API
+    const { data: categoriesFromApi = [] } = useFetchCategoriesQuery();
+
+    // Lấy books từ response (API mới trả về { books: [], pagination: {} })
+    const books = data?.books || [];
+    
+    // Tạo array categories với "All" ở đầu
+    const categories = ["all", ...categoriesFromApi];
 
     return (
         <div className='py-10'>
-            <h2 className='text-3xl font-semibold mb-6'>Top Sellers</h2>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className='text-3xl font-semibold'>Top Sellers</h2>
+                <Link 
+                    to="/books" 
+                    className="text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                >
+                    View All →
+                </Link>
+            </div>
+            
             {/* category filtering */}
-            <div className='mb-8 flex items-center'>
-                <select
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    name="category" id="category" className='border bg-[#EAEAEA] border-gray-300 rounded-md px-4 py-2 focus:outline-none'>
-                    {
-                        categories.map((category, index) => (
-                            <option key={index} value={category}>{category}</option>
-                        ))
-                    }
-                </select>
+            <div className='mb-8 flex items-center gap-4 flex-wrap'>
+                {categories.map((category, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            selectedCategory === category
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                        {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+                    </button>
+                ))}
             </div>
 
             <Swiper
@@ -64,20 +86,18 @@ const TopSellers = () => {
                 modules={[Pagination, Navigation]}
                 className="mySwiper"
             >
-
-                {
-                   filteredBooks.length > 0 && filteredBooks.map((book, index) => (
-                        <SwiperSlide key={index}>
-                            <BookCard  book={book} />
+                {books.length > 0 ? (
+                    books.map((book, index) => (
+                        <SwiperSlide key={book._id || index}>
+                            <BookCard book={book} />
                         </SwiperSlide>
                     ))
-                }
-
-
-
+                ) : (
+                    <div className="text-center py-10 text-gray-500">
+                        No books found in this category
+                    </div>
+                )}
             </Swiper>
-
-
         </div>
     )
 }

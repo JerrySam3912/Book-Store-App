@@ -6,9 +6,9 @@ import { useAddBookMutation } from '../../../redux/features/books/booksApi';
 import Swal from 'sweetalert2';
 
 const AddBook = () => {
-    const { register, handleSubmit, formState: { errors }, reset } = useForm();
-    const [imageFile, setimageFile] = useState(null);
-    const [addBook, {isLoading, isError}] = useAddBookMutation()
+    const { register, handleSubmit, reset } = useForm();
+    const [_imageFile, setimageFile] = useState(null);
+    const [addBook, {isLoading}] = useAddBookMutation()
     const [imageFileName, setimageFileName] = useState('')
     const onSubmit = async (data) => {
  

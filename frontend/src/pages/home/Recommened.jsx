@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
+import { Link } from 'react-router-dom';
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -14,15 +15,25 @@ import { useFetchAllBooksQuery } from '../../redux/features/books/booksApi';
 
 
 const Recommened = () => {
-   
+    // Fetch recommended books (newest books)
+    const { data } = useFetchAllBooksQuery({ limit: 10, sort: 'newest' });
+    
+    // Lấy books từ response
+    const books = data?.books || [];
 
-    const {data: books = []} = useFetchAllBooksQuery();
-  return (
-    <div className='py-16'>
-         <h2 className='text-3xl font-semibold mb-6'>Recommended for you </h2>
+    return (
+        <div className='py-16'>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className='text-3xl font-semibold'>Recommended for you</h2>
+                <Link 
+                    to="/books" 
+                    className="text-indigo-600 hover:text-indigo-700 font-medium text-sm"
+                >
+                    View All →
+                </Link>
+            </div>
 
-
-         <Swiper
+            <Swiper
                 slidesPerView={1}
                 spaceBetween={30}
                 navigation={true}
@@ -47,20 +58,20 @@ const Recommened = () => {
                 modules={[Pagination, Navigation]}
                 className="mySwiper"
             >
-
-                {
-                   books.length > 0 && books.slice(8, 18).map((book, index) => (
-                        <SwiperSlide key={index}>
-                            <BookCard  book={book} />
+                {books.length > 0 ? (
+                    books.map((book, index) => (
+                        <SwiperSlide key={book._id || index}>
+                            <BookCard book={book} />
                         </SwiperSlide>
                     ))
-                }
-
-
-
+                ) : (
+                    <div className="text-center py-10 text-gray-500">
+                        No books found
+                    </div>
+                )}
             </Swiper>
-    </div>
-  )
+        </div>
+    )
 }
 
 export default Recommened
