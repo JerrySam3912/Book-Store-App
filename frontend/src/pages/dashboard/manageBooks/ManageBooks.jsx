@@ -1,11 +1,13 @@
 import React from 'react'
 import { useDeleteBookMutation, useFetchAllBooksQuery } from '../../../redux/features/books/booksApi';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const ManageBooks = () => {
-    const navigate = useNavigate();
 
-    const {data: books, refetch} = useFetchAllBooksQuery()
+    const { data, refetch } = useFetchAllBooksQuery({ limit: 100 });
+    
+    // Lấy books từ response (API mới trả về { books: [], pagination: {} })
+    const books = data?.books || [];
 
     const [deleteBook] = useDeleteBookMutation()
 
@@ -17,15 +19,15 @@ const ManageBooks = () => {
             refetch();
 
         } catch (error) {
-            console.error('Failed to delete book:', error.message);
+            // Error already handled and displayed to user
+            if (import.meta.env.DEV) {
+              console.error('Failed to delete book:', error.message);
+            }
             alert('Failed to delete book. Please try again.');
         }
     };
 
-    // Handle navigating to Edit Book page
-    const handleEditClick = (id) => {
-        navigate(`dashboard/edit-book/${id}`);
-    };
+    // Removed unused handleEditClick function - using direct navigation in JSX instead
   return (
     <section className="py-1 bg-blueGray-50">
     <div className="w-full xl:w-8/12 mb-12 xl:mb-0 px-4 mx-auto mt-24">

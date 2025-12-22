@@ -1,28 +1,40 @@
-const express = require('express');
-const Book = require('./book.model');
-const { postABook, getAllBooks, getSingleBook, UpdateBook, deleteABook } = require('./book.controller');
-const verifyAdminToken = require('../middleware/verifyAdminToken');
-const router =  express.Router();
+// src/books/book.route.js
+const express = require("express");
+const {
+  createBook,
+  getAllBooks,
+  getBookById,
+  updateBook,
+  deleteBook,
+  getCategories,
+  getRecommendedBooks,
+} = require("./book.controller");
+const { verifyAdmin, optionalToken } = require("../middleware/auth.middleware");
+const { validateCreateBook, validateUpdateBook } = require("../middleware/validation.middleware");
 
-// frontend => backend server => controller => book schema  => database => send to server => back to the frontend
-//post = when submit something fronted to db
-// get =  when get something back from db
-// put/patch = when edit or update something
-// delete = when delete something
+const router = express.Router();
 
-// post a book
-router.post("/create-book", verifyAdminToken, postABook)
+// POST /api/books/create-book (ADMIN)
+router.post("/create-book", verifyAdmin, validateCreateBook, createBook);
 
-// get all books
+// GET /api/books (PUBLIC) - Hỗ trợ search, filter, pagination
 router.get("/", getAllBooks);
 
-// single book endpoint
-router.get("/:id", getSingleBook);
+// GET /api/books/categories (PUBLIC) - Lấy danh sách categories
+router.get("/categories", getCategories);
 
-// update a book endpoint
-router.put("/edit/:id", verifyAdminToken, UpdateBook);
+// GET /api/books/recommended (PUBLIC - Optional auth) - Hybrid Recommendation
+// User chưa login → Trending + High Rating
+// User đã login → 70% Category-based + 30% Trending
+router.get("/recommended", optionalToken, getRecommendedBooks);
 
-router.delete("/:id", verifyAdminToken, deleteABook)
+// GET /api/books/:id (PUBLIC)
+router.get("/:id", getBookById);
 
+// PUT /api/books/edit/:id (ADMIN)
+router.put("/edit/:id", verifyAdmin, validateUpdateBook, updateBook);
+
+// DELETE /api/books/:id (ADMIN)
+router.delete("/:id", verifyAdmin, deleteBook);
 
 module.exports = router;

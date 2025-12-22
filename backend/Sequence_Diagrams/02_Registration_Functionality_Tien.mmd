@@ -1,0 +1,56 @@
+sequenceDiagram
+    %% Actor: Customer - The user who initiates the registration process to create a new account on the Book Store platform.
+    %% Objects:
+    %% - Client: The front-end application that displays the registration form and sends user data to the backend.
+    %% - Controller: The backend component responsible for validating input data, handling business logic, and coordinating with the database.
+    %% - Database: Stores user information such as email, username, encrypted password, role, and account status.
+    
+    participant User as Customer
+    participant Client as Client (Frontend)
+    participant Controller as Controller (Backend)
+    participant DB as Database (MySQL)
+    
+    Note over User,DB: 5.3.6.2. Registration Functionality
+    
+    User->>+Client: Open register page
+    
+    User->>Client: Submit registration form\n(name, email, password, optional username)
+    Client->>Controller: POST /api/auth/register\n{ name, email, password, username? }
+    
+    Controller->>Controller: validate input\n(fields, email format, password rules)
+    
+    alt [Invalid Input]
+        Controller-->>Client: 400 Bad Request\n(validation errors)
+        Client-->>User: Display validation errors
+    else [Valid Input]
+        Controller->>+DB: SELECT id FROM users\nWHERE email = ?
+        DB-->>Controller: [] or existing user
+        
+        alt [email exists]
+            Controller-->>Client: 409 Conflict\n(Email already in use)
+            Client-->>User: Display error message
+        else [email not found]
+            Controller->>+DB: SELECT id FROM users\nWHERE username = ?
+            DB-->>Controller: [] or existing username
+            
+            alt [username exists]
+                Controller->>Controller: generate unique username variant\n(from email if not provided)
+                Controller->>+DB: SELECT id FROM users\nWHERE username = ? (retry)
+                DB-->>Controller: []
+            else [username not found]
+            end
+            
+            Controller->>Controller: bcrypt.hash(password)
+            Controller->>+DB: INSERT INTO users\n(username, email, name, password_hash, role)\nVALUES (?, ?, ?, ?, "USER")
+            DB-->>Controller: Insert result (InsertId)
+            
+            Controller->>Controller: jwt.sign([id, username, email, role], JWT_SECRET)
+            
+            Controller-->>Client: 201 Created\n{ token, user }
+            
+            Client->>Client: Client stores token\n(localStorage/cookie) and redirects\nto authenticated area
+            Client-->>-User: Redirect to home page\nAuto-login successful
+        end
+    end
+    
+    Note over User,DB: Figure: Sequence diagram for "Register" function

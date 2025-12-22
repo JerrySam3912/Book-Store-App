@@ -1,0 +1,69 @@
+sequenceDiagram
+    participant User
+    participant Client as Client (Frontend)
+    participant Controller as Controller (Backend)
+    participant DB as Database (MySQL)
+    
+    Note over User,DB: 5.3.6.2. Registration Functionality
+    
+    User->>+Client: Open register page
+    
+    User->>Client: Submit registration form\n(name, email, password, optional username)
+    Client->>Controller: POST /api/auth/register\n{ name, email, password, username? }
+    
+    Note over Controller: Input Validation
+    
+    Controller->>Controller: validate input\n(fields, email format, password rules)
+    
+    alt [Invalid Input]
+        Controller-->>Client: 400 Bad Request\n(validation errors)
+        Client-->>User: Display validation errors
+    else [Valid Input]
+        Note over Controller,DB: Check Email Existence
+        
+        Controller->>+DB: SELECT id FROM users\nWHERE email = ?
+        DB-->>-DB: [] or existing user
+        DB-->>Controller: [] or existing user
+        
+        alt [email exists]
+            Controller-->>Client: 409 Conflict\n(Email already in use)
+            Client-->>User: Display error message
+        else [email not found]
+            Note over Controller,DB: Check Username Existence
+            
+            Controller->>+DB: SELECT id FROM users\nWHERE username = ?
+            DB-->>-DB: [] or existing username
+            DB-->>Controller: [] or existing username
+            
+            alt [username exists]
+                Controller->>Controller: generate unique username variant\n(from email if not provided)
+                Controller->>+DB: SELECT id FROM users\nWHERE username = ? (retry)
+                DB-->>-DB: []
+                DB-->>Controller: []
+            else [username not found]
+                Note over Controller: Username is unique
+            end
+            
+            Note over Controller: Password Hashing and User Creation
+            
+            Controller->>Controller: bcrypt.hash(password)
+            Controller->>+DB: INSERT INTO users\n(username, email, name, password_hash, role)\nVALUES (?, ?, ?, ?, "USER")
+            DB-->>-DB: Insert result (InsertId)
+            DB-->>Controller: Insert result (InsertId)
+            
+            Note over Controller: JWT Token Generation
+            
+            Controller->>Controller: jwt.sign([id, username, email, role], JWT_SECRET)
+            
+            Controller-->>Client: 201 Created\n{ token, user }
+            
+            Note over Client: Final Actions
+            
+            Client->>Client: Client stores token\n(localStorage/cookie) and redirects\nto authenticated area
+            Client-->>User: Redirect to home page\nAuto-login successful
+        end
+    end
+    
+    Client-->>-User: Process completed
+    
+    Note over User,DB: Figure: Sequence diagram for "Register" function

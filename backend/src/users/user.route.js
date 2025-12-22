@@ -1,41 +1,28 @@
-const express =  require('express');
-const User = require('./user.model');
-const jwt = require('jsonwebtoken');
+// src/users/user.route.js
+const express = require("express");
+const { 
+  getUserProfile, 
+  updateUserProfile, 
+  changePassword,
+  getAllUsers,
+  getUserById,
+  updateUserStatus,
+  updateUserByAdmin,
+} = require("./user.controller");
+const { verifyToken, verifyAdmin } = require("../middleware/auth.middleware");
+const { validateUpdateProfile, validateChangePassword } = require("../middleware/validation.middleware");
 
-const router =  express.Router();
+const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET_KEY
+// User routes (require authentication)
+router.get("/profile", verifyToken, getUserProfile);
+router.put("/profile", verifyToken, validateUpdateProfile, updateUserProfile);
+router.patch("/change-password", verifyToken, validateChangePassword, changePassword);
 
-router.post("/admin", async (req, res) => {
-    const {username, password} = req.body;
-    try {
-        const admin =  await User.findOne({username});
-        if(!admin) {
-            res.status(404).send({message: "Admin not found!"})
-        }
-        if(admin.password !== password) {
-            res.status(401).send({message: "Invalid password!"})
-        }
-        
-        const token =  jwt.sign(
-            {id: admin._id, username: admin.username, role: admin.role}, 
-            JWT_SECRET,
-            {expiresIn: "1h"}
-        )
-
-        return res.status(200).json({
-            message: "Authentication successful",
-            token: token,
-            user: {
-                username: admin.username,
-                role: admin.role
-            }
-        })
-        
-    } catch (error) {
-       console.error("Failed to login as admin", error)
-       res.status(401).send({message: "Failed to login as admin"}) 
-    }
-})
+// Admin routes (require admin role)
+router.get("/", verifyAdmin, getAllUsers);
+router.get("/:id", verifyAdmin, getUserById);
+router.put("/:id", verifyAdmin, updateUserByAdmin);
+router.patch("/:id/status", verifyAdmin, updateUserStatus);
 
 module.exports = router;

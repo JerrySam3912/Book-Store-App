@@ -6,21 +6,27 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const RevenueChart = () => {
+const RevenueChart = ({ monthlyOrders = [] }) => {
+  // All months
+  const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  // Create a map from month name to orders count
+  const ordersMap = {};
+  monthlyOrders.forEach(item => {
+    ordersMap[item.month] = item.orders;
+  });
 
-
-
-
-  const revenueData = [500, 700, 800, 600, 750, 900, 650, 870, 960, 1020, 1100, 1150];;
+  // Fill in all months with data or 0
+  const ordersData = allMonths.map(month => ordersMap[month] || 0);
 
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    labels: allMonths,
     datasets: [
       {
-        label: 'Revenue (USD)',
-        data: revenueData,
-        backgroundColor: 'rgba(34, 197, 94, 0.7)', 
-        borderColor: 'rgba(34, 197, 94, 1)',
+        label: 'Orders',
+        data: ordersData,
+        backgroundColor: 'rgba(147, 51, 234, 0.7)', 
+        borderColor: 'rgba(147, 51, 234, 1)',
         borderWidth: 1,
       },
     ],
@@ -28,28 +34,56 @@ const RevenueChart = () => {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        display: false,
       },
       title: {
-        display: true,
-        text: 'Monthly Revenue',
+        display: false,
       },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: function(context) {
+            return `Orders: ${context.parsed.y}`;
+          }
+        }
+      }
     },
     scales: {
+      x: {
+        ticks: {
+          font: {
+            size: 11,
+          },
+        },
+        grid: {
+          display: false,
+        },
+      },
       y: {
         beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+          font: {
+            size: 11,
+          },
+        },
+        title: {
+          display: true,
+          text: 'Number of Orders',
+          font: {
+            size: 12,
+          },
+        },
       },
     },
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-4 bg-white shadow-lg rounded-lg">
-      <h2 className="text-center text-2xl font-bold text-gray-800 mb-4">Monthly Revenue</h2>
-      <div className='hidden md:block'>
-      <Bar data={data} options={options} className='' />
-      </div>
+    <div className="w-full h-full">
+      <Bar data={data} options={options} />
     </div>
   );
 };

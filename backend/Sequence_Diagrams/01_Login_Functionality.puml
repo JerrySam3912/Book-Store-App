@@ -1,0 +1,69 @@
+@startuml Login Functionality
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam roundcorner 20
+skinparam maxMessageSize 60
+
+title Login Functionality (5.3.6.1)
+
+actor User
+participant "Frontend\n(React)" as Frontend
+participant "Auth Controller" as AuthController
+database "Database\n(MySQL)" as DB
+
+== User Login Request ==
+
+User -> Frontend: Enter email and password
+activate Frontend
+
+Frontend -> Frontend: Validate input fields
+Frontend -> AuthController: POST /api/auth/login\n{email, password}
+activate AuthController
+
+== Validate User Credentials ==
+
+AuthController -> DB: SELECT id, username, email, name,\npassword_hash, role, is_active\nWHERE email = ?
+activate DB
+DB --> AuthController: User data or empty
+deactivate DB
+
+alt User not found
+    AuthController --> Frontend: 401 {message: "Invalid email or password"}
+    Frontend --> User: Display error message
+    deactivate AuthController
+    deactivate Frontend
+else User found
+    AuthController -> AuthController: Check is_active status
+    
+    alt Account is banned (is_active = 0)
+        AuthController --> Frontend: 403 {message: "Account has been banned"}
+        Frontend --> User: Display ban message
+        deactivate AuthController
+        deactivate Frontend
+    else Account is active
+        AuthController -> AuthController: bcrypt.compare(password, password_hash)
+        
+        alt Password incorrect
+            AuthController --> Frontend: 401 {message: "Invalid email or password"}
+            Frontend --> User: Display error message
+            deactivate AuthController
+            deactivate Frontend
+        else Password correct
+            == Generate JWT Token ==
+            AuthController -> AuthController: Create payload:\n{id, username, email, name, role}
+            AuthController -> AuthController: jwt.sign(payload, JWT_SECRET,\nexpiresIn: JWT_EXPIRY)
+            
+            AuthController --> Frontend: 200 {\n  message: "Login successful",\n  token: JWT_TOKEN,\n  user: {id, username, email, name, role}\n}
+            deactivate AuthController
+            
+            == Store Token and Update UI ==
+            Frontend -> Frontend: Store token in localStorage\nor AuthContext
+            Frontend -> Frontend: Update user state in Redux
+            Frontend --> User: Redirect to home page\nDisplay success message
+            deactivate Frontend
+        end
+    end
+end
+
+@enduml
+
