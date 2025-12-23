@@ -65,7 +65,6 @@ function App() {
 
   return (
     <>
-      {/* ❌ Bỏ thẻ <AuthProvide> bọc quanh, chỉ giữ lại nội dung bên trong */}
         <Navbar />
         <main className='min-h-screen max-w-screen-2xl mx-auto px-4 py-6 font-primary'>
           <Outlet />
